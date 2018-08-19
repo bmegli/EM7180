@@ -26,6 +26,14 @@
 #include "EM7180.h"
 #include <CrossPlatformI2C_Core.h>
 
+#if defined(TEENSYDUINO)
+#include <i2c_t3.h>
+#define NOSTOP I2C_NOSTOP
+#else
+#include <Wire.h>
+#define NOSTOP false
+#endif
+
 float EM7180::uint32_reg_to_float (uint8_t *buf)
 {
     union {
@@ -45,6 +53,7 @@ bool EM7180::begin(uint8_t bus)
     _i2c = cpi2c_open(ADDRESS, bus);
 
     errorStatus = 0;
+    asyncStatus = IDLE;
 
     // Check SENtral status, make sure EEPROM upload of firmware was accomplished
     for (int attempts=0; attempts<10; ++attempts) {
@@ -285,6 +294,11 @@ uint8_t EM7180::getEventStatus(void)
     return readRegister(EventStatus);
 }
 
+bool EM7180::getEventStatusAsync(uint8_t &ret)
+{
+    return readRegisterAsync(EventStatus, ret);
+}
+
 uint8_t EM7180::getSensorStatus(void)
 {
     return readRegister(SensorStatus);
@@ -461,6 +475,25 @@ void EM7180::readQuaternion(float & qw, float & qx, float & qy, float &qz)
     qw = uint32_reg_to_float (&rawData[12]);
 }
 
+bool EM7180::readQuaternionAsync(float & qw, float & qx, float & qy, float & qz)
+{
+    uint8_t rawData[16];  // x/y/z/w quaternion register data stored here (note unusual order!)
+
+    if( !readRegistersAsync(QX, 16, rawData) )
+        return false;
+
+    if(Wire.getError())
+        return true;
+
+    qx = uint32_reg_to_float (&rawData[0]);
+    qy = uint32_reg_to_float (&rawData[4]);
+    qz = uint32_reg_to_float (&rawData[8]);
+    qw = uint32_reg_to_float (&rawData[12]);
+
+    return true;
+}
+
+
 void EM7180::setIntegerParam(uint8_t param, uint32_t param_val) 
 {
     uint8_t bytes[4], STAT;
@@ -546,6 +579,11 @@ uint8_t EM7180::readRegister(uint8_t subAddress)
     return data;                       
 }
 
+bool EM7180::readRegisterAsync(uint8_t subAddress,  uint8_t &register_value)
+{
+    return readRegistersAsync(subAddress, 1, &register_value);
+}
+
 void EM7180::writeRegister(uint8_t subAddress, uint8_t data)
 {
     cpi2c_writeRegister(_i2c, subAddress, data);
@@ -554,4 +592,42 @@ void EM7180::writeRegister(uint8_t subAddress, uint8_t data)
 void EM7180::readRegisters(uint8_t subAddress, uint8_t count, uint8_t * dest)
 {  
     cpi2c_readRegisters(_i2c, subAddress, count, dest);
+}
+
+//returns true if finished reading or on error, false if operation is in progress
+bool EM7180::readRegistersAsync(uint8_t subAddress, uint8_t count, uint8_t * dest)
+{
+    switch(asyncStatus)
+    {
+    case IDLE:
+        Wire.beginTransmission(_i2c);
+        Wire.write(subAddress);
+        Wire.sendTransmission();
+        asyncStatus=TX_REQUESTED;
+        return false;
+    case TX_REQUESTED:
+        if(!Wire.done())
+            return false;
+        if(Wire.getError())
+        {
+            asyncStatus=IDLE;
+            return true;
+        }
+        Wire.sendRequest(_i2c, count);
+        asyncStatus=RX_REQUESTED;
+        return false;
+    case RX_REQUESTED:
+        if(!Wire.done())
+            return false;
+        if(Wire.getError())
+        {
+            asyncStatus=IDLE;
+            return true;
+        }
+        //possibly add check if got requested number of bytes
+        Wire.read(dest, Wire.available());
+        asyncStatus=IDLE;
+        return true;
+    }
+    return false; //ERROR, should not get here
 }

@@ -38,6 +38,7 @@ void delay(uint32_t msec);
 #endif
 
 class EM7180 {
+    enum AsyncStatus {IDLE, TX_REQUESTED, RX_REQUESTED};
 
     friend class EM7180_Master;
 
@@ -138,11 +139,15 @@ class EM7180 {
 
         uint8_t errorStatus;
 
+        AsyncStatus asyncStatus;
 
         void readThreeAxis(uint8_t xreg, int16_t & x, int16_t & y, int16_t & z);
 
         uint8_t readRegister(uint8_t subAddress);
+        bool readRegisterAsync(uint8_t subAddress,  uint8_t &register_value);
         void    readRegisters(uint8_t subAddress, uint8_t count, uint8_t * dest);
+        bool readRegistersAsync(uint8_t subAddress, uint8_t count, uint8_t * dest);
+
         void    writeRegister(uint8_t subAddress, uint8_t data);
 
     public:
@@ -195,6 +200,7 @@ class EM7180 {
         uint8_t getAlgorithmStatus(void);
         uint8_t getPassThruStatus(void);
         uint8_t getEventStatus(void);
+        bool getEventStatusAsync(uint8_t &ret);
         uint8_t getSensorStatus(void);
         uint8_t getErrorStatus(void);
 
@@ -223,6 +229,8 @@ class EM7180 {
         void readMagnetometer(int16_t & mx, int16_t & my, int16_t & mz);
         void readGyrometer(int16_t & gx, int16_t & gy, int16_t & gz);
         void readQuaternion(float & qw, float & qx, float & qy, float & qz);
+        bool readQuaternionAsync(float & qw, float & qx, float & qy, float & qz);
+
         void readBarometer(float & pressure, float & temperature);
 
         void setIntegerParam (uint8_t param, uint32_t param_val);
@@ -232,3 +240,5 @@ class EM7180 {
         static float uint32_reg_to_float (uint8_t *buf);
 
 }; // class EM7180
+
+

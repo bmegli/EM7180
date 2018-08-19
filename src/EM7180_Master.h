@@ -47,6 +47,7 @@ class EM7180_Master {
         bool begin(uint8_t bus=1);
 
         void checkEventStatus(void);
+        bool checkEventStatusAsync(void);
 
         bool gotError(void);
 
@@ -67,6 +68,7 @@ class EM7180_Master {
         void readGyrometer(float & gx, float & gy, float & gz);
 
         void readQuaternion(float & qw, float & qx, float & qy, float & qz);
+        bool readQuaternionAsync(float & qw, float & qx, float & qy, float & qz);
 
         void readBarometer(float & pressure, float & temperature);
 };

@@ -88,6 +88,11 @@ void EM7180_Master::checkEventStatus(void)
 
 }
 
+bool EM7180_Master::checkEventStatusAsync(void)
+{
+    return _em7180.getEventStatusAsync(_eventStatus);
+}
+
 bool EM7180_Master::gotError(void)
 {
     if (_eventStatus & 0x02) {
@@ -126,6 +131,11 @@ bool EM7180_Master::gotBarometer(void)
 void EM7180_Master::readQuaternion(float & qw, float & qx, float & qy, float &qz)
 {
     _em7180.readQuaternion(qw, qx, qy, qz);
+}
+
+bool EM7180_Master::readQuaternionAsync(float & qw, float & qx, float & qy, float & qz)
+{
+    return _em7180.readQuaternionAsync(qw, qx, qy, qz);
 }
 
 void EM7180_Master::readThreeAxis(uint8_t regx, float & x, float & y, float & z, float scale)
