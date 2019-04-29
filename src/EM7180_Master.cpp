@@ -36,6 +36,25 @@ static const uint8_t SEN_WS_DATA_ADDRESS   = 0x80;   //spans two pages:
 // - 128 bytes (from offset 0)
 // - 12 bytes (from offset 0x80 = 128)
 // - 12 bytes (from offset 0x8c = 140) of ACCEL calibration data
+
+
+//temp
+#define MAG_SCALE                          0x3E8  // +/-1000uT
+
+
+/**************************              Sensor Scales                ****************************/
+ /* MPU9250 Acc Output Scale. Uncomment only one option */
+ //#define ACC_SCALE                          0x02   // +/-2g
+ //#define ACC_SCALE                          0x04   // +/-4g
+ #define ACC_SCALE                          0x08   // +/-8g
+ //#define ACC_SCALE                          0x10   // +/-16g
+
+ 
+/* MPU9250 Gyro Output Scale. Uncomment only one option */
+ //#define GYRO_SCALE                         0xFA   // +/-250DPS
+ //#define GYRO_SCALE                         0x1F4  // +/-500DPS
+ //#define GYRO_SCALE                         0x3E8  // +/-1000DPS
+ #define GYRO_SCALE                         0x7D0  // +/-2000DPS 
  
 struct acc_cal
 {
@@ -312,13 +331,21 @@ bool EM7180_Master::begin(uint8_t bus)
 
 	 if(_accelCal)
 		 accelCal();
+		 
+	 if(_warmStart)
+		 warmStart();
 
     // Enter EM7180 initialized state
     _em7180.setRunDisable();// set SENtral in initialized state to configure registers
-	 EM7180_acc_cal_upload();
+
+	 if(_accelCal)
+		EM7180_acc_cal_upload();
+		
     _em7180.setRunEnable();
 
-	 
+
+	if(_warmStart)
+		EM7180_set_WS_params();
 	 
   //  _em7180.setMasterMode();
   //  _em7180.setRunEnable();
@@ -348,104 +375,12 @@ bool EM7180_Master::begin(uint8_t bus)
 
     // Disable stillness mode
     _em7180.setIntegerParam (0x49, 0x00);
-
+	 _em7180.setMagAccFs(MAG_SCALE, ACC_SCALE);
+	 _em7180.setGyroFs(GYRO_SCALE);
+	 
     // Success
-    return _em7180.getSensorStatus() ? false : true;
-	
+    return _em7180.getSensorStatus() ? false : true;	
 }
-
-/*
-    // Fail immediately if unable to upload EEPROM
-    if (!_em7180.begin(bus)) return false;
-
-	 //conditional, load from EPROM
-	 if(_warmStart)
-		warmStart();
-	
-	 if(_accelCal)
-		accelCal();
-
-	Serial.println("1");
-
-    // Enter EM7180 initialized state
-    _em7180.setRunDisable();// set SENtral in initialized state to configure registers
-	 
-	 delay(10);
-	 
-	 
-	 if(_accelCal)
-		 EM7180_acc_cal_upload();
-		 
-	Serial.println("2");		 
-		 
-    _em7180.setMasterMode();
-    _em7180.setRunEnable();
-	 
-	  delay(100);
-	 
-	 if (_warmStart)
-        EM7180_set_WS_params();
-	
-		Serial.println("3");
-	
-    _em7180.setRunDisable();// set SENtral in initialized state to configure registers
-
-    // Setup LPF bandwidth (BEFORE setting ODR's)
-    _em7180.setAccelLpfBandwidth(0x03); // 41Hz
-    _em7180.setGyroLpfBandwidth(0x03);  // 41Hz
-
-	Serial.println("4");
-
-    // Set accel/gyro/mage desired ODR rates
-    _em7180.setQRateDivisor(_qRateDivisor-1);
-    _em7180.setMagRate(_magRate);
-    _em7180.setAccelRate(_accelRate/10);
-    _em7180.setGyroRate(_gyroRate/10);
-    _em7180.setBaroRate(0x80 | _baroRate); // 0x80 = enable bit
-
-	Serial.println("5");
-
-    // Configure operating modeA
-    _em7180.algorithmControlReset();// read scale sensor data
-
-    // Enable interrupt to host upon certain events:
-    // quaternions updated (0x04), an error occurs (0x02), or the SENtral needs to be reset(0x01)
-    _em7180.enableEvents(0x07);
-
-    // Enable EM7180 run mode
-    _em7180.setRunEnable();// set SENtral in normal run mode
-    delay(100);
-
-	Serial.println("6");
-
-    // Disable stillness mode
-    _em7180.setIntegerParam (0x49, 0x00);
-
-	Serial.println("6.1");
-
-    // Write desired sensor full scale ranges to the EM7180
-    _em7180.setMagAccFs (0x3E8, 0x08); // 1000 uT, 8 g
-
-	Serial.println("6.2");
-
-    _em7180.setGyroFs(0x7D0); // 2000 dps
-
-	Serial.println("6.3");
-
-
-	//is it needed?
-    _em7180.algorithmControlReset(); // re-enable algorithm
-
-	Serial.println("6.4");
-
-
-	Serial.println("7");
-
-    // Success
-    return _em7180.getSensorStatus() ? false : true;
-}
-
-*/
  
 void EM7180_Master::checkEventStatus(void)
 {
