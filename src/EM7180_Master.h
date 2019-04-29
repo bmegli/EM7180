@@ -36,11 +36,24 @@ class EM7180_Master {
         uint8_t  _baroRate;     // Hz
         uint8_t  _qRateDivisor; // w.r.t. gyro rate
 
+        bool _accelCal;
+        bool _warmStart;
+		 			
         void readThreeAxis(uint8_t regx, float & x, float & y, float & z, float scale);
+
+		  //warm start and accel calibration related
+		  void EM7180_set_WS_params();
+		  void M24512DFMreadBytes(uint8_t device_address, uint8_t data_address1, uint8_t data_address2, uint8_t count, uint8_t * dest);
+		  void readSenParams(uint8_t address);
+		  void EM7180_acc_cal_upload();
+		  void readAccelCal(uint8_t address1, uint8_t address2);
+		  
+		  void warmStart();
+		  void accelCal();
 
     public:
 
-        EM7180_Master(uint8_t  magRate, uint16_t accelRate, uint16_t gyroRate, uint8_t  baroRate, uint8_t qRateDivisor); 
+        EM7180_Master(uint8_t  magRate, uint16_t accelRate, uint16_t gyroRate, uint8_t  baroRate, uint8_t qRateDivisor, bool accelCal, bool warmStart); 
 
         const char * getErrorString(void);
 
