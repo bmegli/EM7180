@@ -308,11 +308,21 @@ bool EM7180_Master::begin(uint8_t bus)
     // Fail immediately if unable to upload EEPROM
     if (!_em7180.begin(bus)) return false;
 
+	 delay(100); //BM
+
+	 if(_accelCal)
+		 accelCal();
+
     // Enter EM7180 initialized state
     _em7180.setRunDisable();// set SENtral in initialized state to configure registers
-    _em7180.setMasterMode();
+	 EM7180_acc_cal_upload();
     _em7180.setRunEnable();
-    _em7180.setRunDisable();// set SENtral in initialized state to configure registers
+
+	 
+	 
+  //  _em7180.setMasterMode();
+  //  _em7180.setRunEnable();
+  //  _em7180.setRunDisable();// set SENtral in initialized state to configure registers
 
     // Setup LPF bandwidth (BEFORE setting ODR's)
     _em7180.setAccelLpfBandwidth(0x03); // 41Hz
