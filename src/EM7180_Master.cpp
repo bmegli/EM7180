@@ -308,6 +308,46 @@ bool EM7180_Master::begin(uint8_t bus)
     // Fail immediately if unable to upload EEPROM
     if (!_em7180.begin(bus)) return false;
 
+    // Enter EM7180 initialized state
+    _em7180.setRunDisable();// set SENtral in initialized state to configure registers
+    _em7180.setMasterMode();
+    _em7180.setRunEnable();
+    _em7180.setRunDisable();// set SENtral in initialized state to configure registers
+
+    // Setup LPF bandwidth (BEFORE setting ODR's)
+    _em7180.setAccelLpfBandwidth(0x03); // 41Hz
+    _em7180.setGyroLpfBandwidth(0x03);  // 41Hz
+
+    // Set accel/gyro/mage desired ODR rates
+    _em7180.setQRateDivisor(_qRateDivisor-1);
+    _em7180.setMagRate(_magRate);
+    _em7180.setAccelRate(_accelRate/10);
+    _em7180.setGyroRate(_gyroRate/10);
+    _em7180.setBaroRate(0x80 | _baroRate); // 0x80 = enable bit
+
+    // Configure operating modeA
+    _em7180.algorithmControlReset();// read scale sensor data
+
+    // Enable interrupt to host upon certain events:
+    // quaternions updated (0x04), an error occurs (0x02), or the SENtral needs to be reset(0x01)
+    _em7180.enableEvents(0x07);
+
+    // Enable EM7180 run mode
+    _em7180.setRunEnable();// set SENtral in normal run mode
+    delay(100);
+
+    // Disable stillness mode
+    _em7180.setIntegerParam (0x49, 0x00);
+
+    // Success
+    return _em7180.getSensorStatus() ? false : true;
+	
+}
+
+/*
+    // Fail immediately if unable to upload EEPROM
+    if (!_em7180.begin(bus)) return false;
+
 	 //conditional, load from EPROM
 	 if(_warmStart)
 		warmStart();
@@ -395,6 +435,8 @@ bool EM7180_Master::begin(uint8_t bus)
     return _em7180.getSensorStatus() ? false : true;
 }
 
+*/
+ 
 void EM7180_Master::checkEventStatus(void)
 {
     // Check event status register, way to check data ready by checkEventStatusing rather than interrupt
