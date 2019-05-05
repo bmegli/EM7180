@@ -516,6 +516,55 @@ void EM7180::setIntegerParam(uint8_t param, uint32_t param_val)
     writeRegister(AlgorithmControl, 0x00); // Re-start algorithm
 }
 
+static void float_to_bytes (float param_val, uint8_t *buf)
+{
+  union
+  {
+    float f;
+    uint8_t comp[sizeof(float)];
+  } u;
+  
+  u.f = param_val;
+  for (uint8_t i=0; i < sizeof(float); i++)
+  {
+    buf[i] = u.comp[i];
+  }
+  
+  // Convert to LITTLE ENDIAN
+  for (uint8_t i=0; i < sizeof(float); i++)
+  {
+    buf[i] = buf[(sizeof(float)-1) - i];
+  }
+}
+
+
+void EM7180::setFloatParam (uint8_t param, float param_val)
+{
+  uint8_t bytes[4], STAT;
+  
+  float_to_bytes (param_val, &bytes[0]);
+
+  // Parameter is the decimal value with the MSB set high to indicate a paramter write processs
+  param = param | 0x80;
+  writeRegister(LoadParamByte0, bytes[0]); //Param LSB
+  writeRegister(LoadParamByte1, bytes[1]);
+  writeRegister(LoadParamByte2, bytes[2]);
+  writeRegister(LoadParamByte3, bytes[3]); //Param MSB
+  writeRegister(ParamRequest, param);
+
+// Request parameter transfer procedure
+  writeRegister(AlgorithmControl, 0x80); //Request parameter transfer procedure
+
+  // Check the parameter acknowledge register and loop until the result matches parameter request byte
+    STAT = readRegister(ParamAcknowledge); //Check the parameter acknowledge register and loop until the result matches parameter request byte
+    while(!(STAT==param)) {
+        STAT = readRegister(ParamAcknowledge);
+    }
+	writeRegister(ParamRequest, 0x00); //Parameter request = 0 to end parameter transfer process
+	writeRegister(AlgorithmControl, 0x00); // Re-start algorithm
+}
+
+
 void EM7180::getFullScaleRanges(uint8_t& accFs, uint16_t& gyroFs, uint16_t& magFs)
 {
     uint8_t param[4];

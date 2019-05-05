@@ -77,46 +77,30 @@ void EM7180_Master::EM7180_set_WS_params()
     uint8_t param = 1;
     uint8_t stat;
 
-	  if (Wire.getError()) Serial.println(Wire.status());
-	 delay(100);
-
     // Parameter is the decimal value with the MSB set high to indicate a paramter write processs
     param = param | 0x80;
     _em7180.loadParamByte0(WS_params.Sen_param[0][0]);
-	  if (Wire.getError()) Serial.println(Wire.status());
-	 
     _em7180.loadParamByte1(WS_params.Sen_param[0][1]);
-	  if (Wire.getError()) Serial.println(Wire.status());
     _em7180.loadParamByte2(WS_params.Sen_param[0][2]);
-	  if (Wire.getError()) Serial.println(Wire.status());
     _em7180.loadParamByte3(WS_params.Sen_param[0][3]);
-
-	  if (Wire.getError()) Serial.println(Wire.status());
     _em7180.requestParamRead(param);
 
-	  if (Wire.getError()) Serial.println(Wire.status());
     // Request parameter transfer procedure
     _em7180.algorithmControlRequestParameterTransfer();
-
-	  if (Wire.getError()) Serial.println(Wire.status());
-	 Serial.println("2.1");
 
     // Check the parameter acknowledge register and loop until the result matches parameter request byte
     stat = _em7180.getParamAcknowledge();
     while(!(stat==param)) {
-		 
-	 _em7180.loadParamByte0(WS_params.Sen_param[0][0]);
-    _em7180.loadParamByte1(WS_params.Sen_param[0][1]);
-    _em7180.loadParamByte2(WS_params.Sen_param[0][2]);
-    _em7180.loadParamByte3(WS_params.Sen_param[0][3]);
-    _em7180.requestParamRead(param);
-    _em7180.algorithmControlRequestParameterTransfer();
-
+		
+	//BM - commented out
+	// _em7180.loadParamByte0(WS_params.Sen_param[0][0]);
+   // _em7180.loadParamByte1(WS_params.Sen_param[0][1]);
+   // _em7180.loadParamByte2(WS_params.Sen_param[0][2]);
+    //_em7180.loadParamByte3(WS_params.Sen_param[0][3]);
+	// _em7180.requestParamRead(param); 
+   // _em7180.algorithmControlRequestParameterTransfer();
 		 
         stat = _em7180.getParamAcknowledge();
-		  delay(100);
-		  Serial.print(".");
-		  Serial.println(stat);
     }
 	 
     Serial.println("2.2");
@@ -140,6 +124,7 @@ void EM7180_Master::EM7180_set_WS_params()
 	 
     // Parameter request = 0 to end parameter transfer process
     _em7180.requestParamRead(0x00);
+	 _em7180.algorithmControlReset();
 }
 
 void EM7180_Master::M24512DFMreadBytes(uint8_t device_address, uint8_t data_address1, uint8_t data_address2, uint8_t count, uint8_t * dest)
@@ -168,12 +153,110 @@ void EM7180_Master::readSenParams(uint8_t address) //adjust addresses
 	 M24512DFMreadBytes(M24512DFM_DATA_ADDRESS, address, 0x00, 128, &data[0]);
 
     for (paramnum = 0; paramnum < 35; paramnum++) // 35 parameters
-        for (uint8_t i= 0; i < 4; i++)        
+        for (uint8_t i= 0; i < 4; i++)
             WS_params.Sen_param[paramnum][i] = data[(paramnum*4 + i)];
 }
 
 // ACC
 
+#define ACC_NORTH 0        // MPU9250 X-axis
+#define ACC_EAST  1        // MPU9250 Y-axis
+#define ACC_DOWN  2        // MPU9250 Z-axis
+
+void EM7180_Master::EM7180_acc_cal_upload()
+{
+  int64_t big_cal_num;
+  union
+  {
+    int16_t cal_num;
+    unsigned char cal_num_byte[2];
+  };
+  
+  if (!_accelCal)
+  {
+    cal_num_byte[0] = 0;
+    cal_num_byte[1] = 0;
+  } else
+  {
+    //NORTH SCALE
+    big_cal_num = (4096000000/(global_conf.accZero_max[ACC_NORTH] - global_conf.accZero_min[ACC_NORTH])) - 1000000;
+    cal_num = (int16_t)big_cal_num;
+  }
+  
+  _em7180.writeGp36(cal_num_byte[0]);
+  _em7180.writeGp37(cal_num_byte[1]);
+  
+  if (!_accelCal)
+  {
+    cal_num_byte[0] = 0;
+    cal_num_byte[1] = 0;
+  } else
+  {
+   // EAST SCALE
+   big_cal_num = (4096000000/(global_conf.accZero_max[ACC_EAST] - global_conf.accZero_min[ACC_EAST])) - 1000000;
+    cal_num = (int16_t)big_cal_num;
+  }
+  
+  _em7180.writeGp38(cal_num_byte[0]);
+  _em7180.writeGp39(cal_num_byte[1]);
+
+  if (!_accelCal)
+  {
+    cal_num_byte[0] = 0;
+    cal_num_byte[1] = 0;
+  } else
+  {
+   // DOWN SCALE
+   big_cal_num = (4096000000/(global_conf.accZero_max[ACC_DOWN] - global_conf.accZero_min[ACC_DOWN])) - 1000000;
+    cal_num = (int16_t)big_cal_num;
+  }
+  _em7180.writeGp40(cal_num_byte[0]);
+  _em7180.writeGp50(cal_num_byte[1]);
+
+  if (!_accelCal)
+  {
+    cal_num_byte[0] = 0;
+    cal_num_byte[1] = 0;
+  } else
+  {
+    // NORTH OFFSET
+    big_cal_num = (((global_conf.accZero_max[ACC_NORTH] - 2048) + (global_conf.accZero_min[ACC_NORTH] + 2048))*100000)/4096;
+    cal_num = (int16_t)big_cal_num;
+  }
+  
+	_em7180.writeGp51(cal_num_byte[0]);
+  _em7180.writeGp52(cal_num_byte[1]);
+
+  if (!_accelCal)
+  {
+    cal_num_byte[0] = 0;
+    cal_num_byte[1] = 0;
+  } else
+  {
+    // EAST OFFSET
+    big_cal_num = (((global_conf.accZero_max[ACC_EAST] - 2048) + (global_conf.accZero_min[ACC_EAST] + 2048))*100000)/4096;
+    cal_num = (int16_t)big_cal_num;
+  }
+  
+	_em7180.writeGp53(cal_num_byte[0]);
+  _em7180.writeGp54(cal_num_byte[1]);
+
+  if (!_accelCal)
+  {
+    cal_num_byte[0] = 0;
+    cal_num_byte[1] = 0;
+  } else
+  {
+    // DOWN OFFSET
+    big_cal_num = (((global_conf.accZero_max[ACC_DOWN] - 2048) + (global_conf.accZero_min[ACC_DOWN] + 2048))*100000)/4096;
+    cal_num = (int16_t)big_cal_num;
+  }
+  
+  _em7180.writeGp55(cal_num_byte[0]);
+  _em7180.writeGp56(cal_num_byte[1]);
+}
+
+/*
 void EM7180_Master::EM7180_acc_cal_upload()
 {
     int64_t big_cal_num;
@@ -255,7 +338,7 @@ void EM7180_Master::EM7180_acc_cal_upload()
     _em7180.writeGp55(cal_num_byte[0]);
     _em7180.writeGp56(cal_num_byte[1]);
 }
-
+*/
 void EM7180_Master::readAccelCal(uint8_t address1, uint8_t address2) 
 {
     uint8_t data[12];
@@ -268,6 +351,8 @@ void EM7180_Master::readAccelCal(uint8_t address1, uint8_t address2)
         global_conf.accZero_min[axis] = ((int16_t)(data[(2*axis + 7)]<<8) | data[(2*axis + 6)]);
     }
 }
+
+
 
 // END OF WARM START
 
@@ -292,7 +377,7 @@ void EM7180_Master::warmStart()
 	Serial.println("!!!Warm Start active!!!");
 
 	// Put the Sentral in pass-thru mode
-	_em7180.setPassThroughMode();
+	//_em7180.setPassThroughMode(); TEMP
 
 	// Fetch the WarmStart data from the M24512DFM I2C EEPROM
 	readSenParams(SEN_WS_DATA_ADDRESS);
@@ -319,10 +404,98 @@ void EM7180_Master::accelCal()
         Serial.print("Z-acc min: "); Serial.println(global_conf.accZero_min[2]);
 
         // Take Sentral out of pass-thru mode and re-start algorithm
-        _em7180.setMasterMode();	
+       // _em7180.setMasterMode();	TEMP 
 }
 
 bool EM7180_Master::begin(uint8_t bus)
+{  
+  // Fail immediately if unable to upload EEPROM
+  if (!_em7180.begin(bus)) return false;
+
+  delay(100);
+
+  //Tu wczytanie z EPROM
+
+  if(_accelCal)
+		 accelCal();
+		 
+  if(_warmStart)
+		warmStart();
+
+  //koniec wczytania z EPROM
+    
+  // Be sure Sentral is in "Idle" state
+  _em7180.setRunDisable();
+
+// wczytanie Kalibracji akcelerometru
+
+	 if(_accelCal)
+	 {
+		EM7180_acc_cal_upload();
+		delay(500);
+	 }
+
+	_em7180.setRunEnable();
+
+  delay(20);
+
+// koniec wczytania kalibradcji akcelerometru
+
+  // Apply Warm Start Parameters
+
+	if(_warmStart)
+	{
+		EM7180_set_WS_params();
+		delay(1000);
+	}
+  // Set Sensor LPF bandwidth. MUST BE DONE BEFORE SETTING ODR's
+    _em7180.setAccelLpfBandwidth(0x03); // 41Hz
+    _em7180.setGyroLpfBandwidth(0x03);  // 41Hz
+
+
+    // Set accel/gyro/mage desired ODR rates
+    _em7180.setAccelRate(_accelRate/10);
+    _em7180.setGyroRate(_gyroRate/10);
+    _em7180.setMagRate(_magRate);
+    _em7180.setQRateDivisor(_qRateDivisor-1);
+
+  // ODR + 10000000b to activate the eventStatus bit for the barometer...
+    _em7180.setBaroRate(0x80 | _baroRate); // 0x80 = enable bit
+
+
+  // Configure operating mode
+  // Output scaled sensor data (Quaternion convention NED)  
+  _em7180.algorithmControlReset();
+  
+  // Enable interrupt to host upon certain events:
+    // quaternions updated (0x04), an error occurs (0x02), or the SENtral needs to be reset(0x01)
+    _em7180.enableEvents(0x07);
+
+  // Start the Sentral
+  _em7180.algorithmControlReset();
+  
+  
+  // Perform final Sentral alogorithm parameter modifications
+	_em7180.setIntegerParam (0x49, 0x00); // Disable "Stillness" mode
+	 _em7180.setIntegerParam (0x48, 0x01);   // Set Gbias_mode to 1
+	 _em7180.setMagAccFs(MAG_SCALE, ACC_SCALE);  // Set magnetometer/accelerometer full-scale ranges
+	 _em7180.setGyroFs(GYRO_SCALE); // Set gyroscope full-scale range
+	 _em7180.setFloatParam (0x3B, 0.0f);         			                                                                         // Param 59 Mag Transient Protect off (0.0)
+  ////EM7180::EM7180_set_float_param (0x34, 4.0f);                                                                                  // Param 52 Mag merging rate (0.7 default)
+  ////EM7180::EM7180_set_float_param (0x35, 0.3f);                                                                                  // Param 53 Accel merging rate (0.6 default)
+ 
+  
+  //I2C->writeByte(EM7180_ADDRESS, EM7180_AlgorithmControl, 0x02);                                                                // Diagnostic; reports unscaled sensor data
+
+  // Choose interrupt events: Gyros updated (0x20), Sentral error (0x02) or Sentral reset (0x01)
+  _em7180.enableEvents(0x07);
+
+  // Read event status register
+  return _em7180.getSensorStatus() ? false : true;	
+}
+
+/*
+bool EM7180_Master::begin2(uint8_t bus)
 {
     // Fail immediately if unable to upload EEPROM
     if (!_em7180.begin(bus)) return false;
@@ -375,12 +548,16 @@ bool EM7180_Master::begin(uint8_t bus)
 
     // Disable stillness mode
     _em7180.setIntegerParam (0x49, 0x00);
+	 _em7180.setIntegerParam (0x48, 0x01);   //from cal
 	 _em7180.setMagAccFs(MAG_SCALE, ACC_SCALE);
 	 _em7180.setGyroFs(GYRO_SCALE);
+	 //_em7180.setFloatParam(0x3B, 0.0f);  //from cal
 	 
+	 _em7180.enableEvents(0x07);
     // Success
     return _em7180.getSensorStatus() ? false : true;	
 }
+*/
  
 void EM7180_Master::checkEventStatus(void)
 {
@@ -452,7 +629,7 @@ void EM7180_Master::readThreeAxis(uint8_t regx, float & x, float & y, float & z,
 
 void EM7180_Master::readAccelerometer(float & ax, float & ay, float & az)
 {
-    readThreeAxis(EM7180::AX, ax, ay, az, 0.000488);
+    readThreeAxis(EM7180::AX, ax, ay, az, 0.0004882813f);
 }
 
 void EM7180_Master::readGyrometer(float & gx, float & gy, float & gz)

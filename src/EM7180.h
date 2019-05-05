@@ -234,6 +234,7 @@ class EM7180 {
         void readBarometer(float & pressure, float & temperature);
 
         void setIntegerParam (uint8_t param, uint32_t param_val);
+		  void setFloatParam (uint8_t param, float param_val);
 
         void getFullScaleRanges(uint8_t& accFs, uint16_t& gyroFs, uint16_t& magFs);
 
