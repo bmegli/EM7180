@@ -48,9 +48,7 @@ class EM7180_Master {
 		  void EM7180_acc_cal_upload();
 		  void readAccelCal(uint8_t address1, uint8_t address2);
 		  
-		  void warmStart();
-		  void accelCal();
-
+		  void loadAccelAndWSFromEEPROM();
     public:
 
         EM7180_Master(uint8_t  magRate, uint16_t accelRate, uint16_t gyroRate, uint8_t  baroRate, uint8_t qRateDivisor, bool accelCal, bool warmStart); 

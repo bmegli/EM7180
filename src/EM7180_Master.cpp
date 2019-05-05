@@ -102,9 +102,7 @@ void EM7180_Master::EM7180_set_WS_params()
 		 
         stat = _em7180.getParamAcknowledge();
     }
-	 
-    Serial.println("2.2");
-	 
+	 	 
     for(uint8_t i=1; i<35; i++) {
         param = (i+1) | 0x80;
         _em7180.loadParamByte0(WS_params.Sen_param[i][0]);
@@ -119,9 +117,7 @@ void EM7180_Master::EM7180_set_WS_params()
             stat = _em7180.getParamAcknowledge();
         
     }
-	 
-	Serial.println("2.3");
-	 
+	 	 
     // Parameter request = 0 to end parameter transfer process
     _em7180.requestParamRead(0x00);
 	 _em7180.algorithmControlReset();
@@ -219,7 +215,7 @@ void EM7180_Master::EM7180_acc_cal_upload()
     cal_num_byte[1] = 0;
   } else
   {
-    // NORTH OFFSET
+    // NORTH OFFSET - is the sign correct?
     big_cal_num = (((global_conf.accZero_max[ACC_NORTH] - 2048) + (global_conf.accZero_min[ACC_NORTH] + 2048))*100000)/4096;
     cal_num = (int16_t)big_cal_num;
   }
@@ -233,7 +229,7 @@ void EM7180_Master::EM7180_acc_cal_upload()
     cal_num_byte[1] = 0;
   } else
   {
-    // EAST OFFSET
+    // EAST OFFSET - is the sign correct?
     big_cal_num = (((global_conf.accZero_max[ACC_EAST] - 2048) + (global_conf.accZero_min[ACC_EAST] + 2048))*100000)/4096;
     cal_num = (int16_t)big_cal_num;
   }
@@ -247,7 +243,7 @@ void EM7180_Master::EM7180_acc_cal_upload()
     cal_num_byte[1] = 0;
   } else
   {
-    // DOWN OFFSET
+    // DOWN OFFSET - is the sign correct?
     big_cal_num = (((global_conf.accZero_max[ACC_DOWN] - 2048) + (global_conf.accZero_min[ACC_DOWN] + 2048))*100000)/4096;
     cal_num = (int16_t)big_cal_num;
   }
@@ -256,89 +252,6 @@ void EM7180_Master::EM7180_acc_cal_upload()
   _em7180.writeGp56(cal_num_byte[1]);
 }
 
-/*
-void EM7180_Master::EM7180_acc_cal_upload()
-{
-    int64_t big_cal_num;
-    union
-    {
-        int16_t cal_num;
-        unsigned char cal_num_byte[2];
-    };
-
-    if (!_accelCal)
-    {
-        cal_num_byte[0] = 0;
-        cal_num_byte[1] = 0;
-    } else
-    {
-        big_cal_num = (4096000000/(global_conf.accZero_max[0] - global_conf.accZero_min[0])) - 1000000;
-        cal_num = (int16_t)big_cal_num;
-    }
-    _em7180.writeGp36(cal_num_byte[0]);
-    _em7180.writeGp37(cal_num_byte[1]);
-
-    if (!_accelCal)
-    {
-        cal_num_byte[0] = 0;
-        cal_num_byte[1] = 0;
-    } else
-    {
-        big_cal_num = (4096000000/(global_conf.accZero_max[1] - global_conf.accZero_min[1])) - 1000000;
-        cal_num = (int16_t)big_cal_num;
-    }
-    _em7180.writeGp38(cal_num_byte[0]);
-    _em7180.writeGp39(cal_num_byte[1]);  
-
-    if (!_accelCal)
-    {
-        cal_num_byte[0] = 0;
-        cal_num_byte[1] = 0;
-    } else
-    {
-        big_cal_num = (4096000000/(global_conf.accZero_max[2] - global_conf.accZero_min[2])) - 1000000;
-        cal_num = (int16_t)big_cal_num;
-    }
-    _em7180.writeGp40(cal_num_byte[0]);
-    _em7180.writeGp50(cal_num_byte[1]);
-
-    if (!_accelCal)
-    {
-        cal_num_byte[0] = 0;
-        cal_num_byte[1] = 0;
-    } else
-    {
-        big_cal_num = (((2048 - global_conf.accZero_max[0]) + (-2048 - global_conf.accZero_min[0]))*100000)/4096;
-        cal_num = (int16_t)big_cal_num;
-    }
-    _em7180.writeGp51(cal_num_byte[0]);
-    _em7180.writeGp52(cal_num_byte[1]);
-
-    if (!_accelCal)
-    {
-        cal_num_byte[0] = 0;
-        cal_num_byte[1] = 0;
-    } else
-    {
-        big_cal_num = (((2048 - global_conf.accZero_max[1]) + (-2048 - global_conf.accZero_min[1]))*100000)/4096;
-        cal_num = (int16_t)big_cal_num;
-    }
-    _em7180.writeGp53(cal_num_byte[0]);
-    _em7180.writeGp54(cal_num_byte[1]);
-
-    if (!_accelCal)
-    {
-        cal_num_byte[0] = 0;
-        cal_num_byte[1] = 0;
-    } else
-    {
-        big_cal_num = (((2048 - global_conf.accZero_max[2]) + (-2048 - global_conf.accZero_min[2]))*100000)/4096;
-        cal_num = -(int16_t)big_cal_num;
-    }
-    _em7180.writeGp55(cal_num_byte[0]);
-    _em7180.writeGp56(cal_num_byte[1]);
-}
-*/
 void EM7180_Master::readAccelCal(uint8_t address1, uint8_t address2) 
 {
     uint8_t data[12];
@@ -351,7 +264,6 @@ void EM7180_Master::readAccelCal(uint8_t address1, uint8_t address2)
         global_conf.accZero_min[axis] = ((int16_t)(data[(2*axis + 7)]<<8) | data[(2*axis + 6)]);
     }
 }
-
 
 
 // END OF WARM START
@@ -372,39 +284,21 @@ const char * EM7180_Master::getErrorString(void)
     return _em7180.getErrorString();
 }
 
-void EM7180_Master::warmStart()
+
+void EM7180_Master::loadAccelAndWSFromEEPROM()
 {
-	Serial.println("!!!Warm Start active!!!");
+	if(!_accelCal && !_warmStart)
+		return;
+		
+	_em7180.setPassThroughMode();
 
-	// Put the Sentral in pass-thru mode
-	//_em7180.setPassThroughMode(); TEMP
+	if(_accelCal)
+		readAccelCal(SEN_WS_DATA_ADDRESS, 0x8c); //WS uses 128 + 12, ACCEL starts at next byte (0x8c)
+		
+	if(_warmStart)
+		readSenParams(SEN_WS_DATA_ADDRESS);
 
-	// Fetch the WarmStart data from the M24512DFM I2C EEPROM
-	readSenParams(SEN_WS_DATA_ADDRESS);
-
-	// Take Sentral out of pass-thru mode and re-start algorithm
 	_em7180.setMasterMode();
-
-}
-
-void EM7180_Master::accelCal()
-{
-        Serial.println("!!!Accel Cal Active!!!");
-
-        // Put the Sentral in pass-thru mode
-        _em7180.setPassThroughMode();
-
-        // Fetch the WarmStart data from the M24512DFM I2C EEPROM
-        readAccelCal(SEN_WS_DATA_ADDRESS, 0x8c); //WS uses 128 + 12, ACCEL starts at next byte (0x8c)
-        Serial.print("X-acc max: "); Serial.println(global_conf.accZero_max[0]);
-        Serial.print("Y-acc max: "); Serial.println(global_conf.accZero_max[1]);
-        Serial.print("Z-acc max: "); Serial.println(global_conf.accZero_max[2]);
-        Serial.print("X-acc min: "); Serial.println(global_conf.accZero_min[0]);
-        Serial.print("Y-acc min: "); Serial.println(global_conf.accZero_min[1]);
-        Serial.print("Z-acc min: "); Serial.println(global_conf.accZero_min[2]);
-
-        // Take Sentral out of pass-thru mode and re-start algorithm
-       // _em7180.setMasterMode();	TEMP 
 }
 
 bool EM7180_Master::begin(uint8_t bus)
@@ -414,20 +308,10 @@ bool EM7180_Master::begin(uint8_t bus)
 
   delay(100);
 
-  //Tu wczytanie z EPROM
-
-  if(_accelCal)
-		 accelCal();
-		 
-  if(_warmStart)
-		warmStart();
-
-  //koniec wczytania z EPROM
+  loadAccelAndWSFromEEPROM();
     
   // Be sure Sentral is in "Idle" state
   _em7180.setRunDisable();
-
-// wczytanie Kalibracji akcelerometru
 
 	 if(_accelCal)
 	 {
@@ -494,70 +378,6 @@ bool EM7180_Master::begin(uint8_t bus)
   return _em7180.getSensorStatus() ? false : true;	
 }
 
-/*
-bool EM7180_Master::begin2(uint8_t bus)
-{
-    // Fail immediately if unable to upload EEPROM
-    if (!_em7180.begin(bus)) return false;
-
-	 delay(100); //BM
-
-	 if(_accelCal)
-		 accelCal();
-		 
-	 if(_warmStart)
-		 warmStart();
-
-    // Enter EM7180 initialized state
-    _em7180.setRunDisable();// set SENtral in initialized state to configure registers
-
-	 if(_accelCal)
-		EM7180_acc_cal_upload();
-		
-    _em7180.setRunEnable();
-
-
-	if(_warmStart)
-		EM7180_set_WS_params();
-	 
-  //  _em7180.setMasterMode();
-  //  _em7180.setRunEnable();
-  //  _em7180.setRunDisable();// set SENtral in initialized state to configure registers
-
-    // Setup LPF bandwidth (BEFORE setting ODR's)
-    _em7180.setAccelLpfBandwidth(0x03); // 41Hz
-    _em7180.setGyroLpfBandwidth(0x03);  // 41Hz
-
-    // Set accel/gyro/mage desired ODR rates
-    _em7180.setQRateDivisor(_qRateDivisor-1);
-    _em7180.setMagRate(_magRate);
-    _em7180.setAccelRate(_accelRate/10);
-    _em7180.setGyroRate(_gyroRate/10);
-    _em7180.setBaroRate(0x80 | _baroRate); // 0x80 = enable bit
-
-    // Configure operating modeA
-    _em7180.algorithmControlReset();// read scale sensor data
-
-    // Enable interrupt to host upon certain events:
-    // quaternions updated (0x04), an error occurs (0x02), or the SENtral needs to be reset(0x01)
-    _em7180.enableEvents(0x07);
-
-    // Enable EM7180 run mode
-    _em7180.setRunEnable();// set SENtral in normal run mode
-    delay(100);
-
-    // Disable stillness mode
-    _em7180.setIntegerParam (0x49, 0x00);
-	 _em7180.setIntegerParam (0x48, 0x01);   //from cal
-	 _em7180.setMagAccFs(MAG_SCALE, ACC_SCALE);
-	 _em7180.setGyroFs(GYRO_SCALE);
-	 //_em7180.setFloatParam(0x3B, 0.0f);  //from cal
-	 
-	 _em7180.enableEvents(0x07);
-    // Success
-    return _em7180.getSensorStatus() ? false : true;	
-}
-*/
  
 void EM7180_Master::checkEventStatus(void)
 {
