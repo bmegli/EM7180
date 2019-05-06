@@ -318,6 +318,7 @@ bool EM7180_Master::begin(uint8_t bus)
 		EM7180_acc_cal_upload();
 		delay(500);
 	 }
+  	_em7180.writeRegister(EM7180::AlgorithmControl, 0x08); // 6-axis enable - (6-axis fusion, no magnetometer)
 
 	_em7180.setRunEnable();
 
@@ -356,7 +357,7 @@ bool EM7180_Master::begin(uint8_t bus)
     _em7180.enableEvents(0x07);
 
   // Start the Sentral
-  _em7180.algorithmControlReset();
+   _em7180.algorithmControlReset();
   
   
   // Perform final Sentral alogorithm parameter modifications
@@ -364,11 +365,12 @@ bool EM7180_Master::begin(uint8_t bus)
 	 _em7180.setIntegerParam (0x48, 0x01);   // Set Gbias_mode to 1
 	 _em7180.setMagAccFs(MAG_SCALE, ACC_SCALE);  // Set magnetometer/accelerometer full-scale ranges
 	 _em7180.setGyroFs(GYRO_SCALE); // Set gyroscope full-scale range
-	 _em7180.setFloatParam (0x3B, 0.0f);         			                                                                         // Param 59 Mag Transient Protect off (0.0)
+   _em7180.setFloatParam (0x3B, 0.0f);         			                                                                         // Param 59 Mag Transient Protect off (0.0)
   ////EM7180::EM7180_set_float_param (0x34, 4.0f);                                                                                  // Param 52 Mag merging rate (0.7 default)
   ////EM7180::EM7180_set_float_param (0x35, 0.3f);                                                                                  // Param 53 Accel merging rate (0.6 default)
  
-  
+ 
+
   //I2C->writeByte(EM7180_ADDRESS, EM7180_AlgorithmControl, 0x02);                                                                // Diagnostic; reports unscaled sensor data
 
   // Choose interrupt events: Gyros updated (0x20), Sentral error (0x02) or Sentral reset (0x01)
